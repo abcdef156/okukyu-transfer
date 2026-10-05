@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奥急 乗換案内</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Noto Sans JP", sans-serif;
+  background: #f4f6f8;
+  color: #222;
+}
+
+header {
+  background: #1976d2;
+  color: white;
+  padding: 18px 16px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+header p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  opacity: .9;
+}
+
+.search-box {
+  background: white;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+
+.select-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-group {
+  flex: 1;
+}
+
+.select-group label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+select {
+  width: 100%;
+  padding: 11px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: white;
+  font-size: 15px;
+}
+
+.arrow {
+  padding-top: 18px;
+  font-size: 20px;
+  color: #1976d2;
+}
+
+
+/* =========================
+   検索ボタン
+========================= */
+
+#searchButton {
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  background: #1976d2;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+
+  /* 押したときのアニメーション */
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+
+  /* ボタンが少し浮いて見える */
+  box-shadow: 0 3px 0 #125ca5;
+}
+
+
+/* ボタンを押している間 */
+#searchButton:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #125ca5;
+}
+
+
+/* =========================
+   検索結果
+========================= */
+
+#result {
+  padding: 14px;
+}
+
+.route-card {
+  background: white;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  padding: 14px;
+  box-shadow: 0 2px 7px rgba(0,0,0,.08);
+}
+
+.route-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.recommend {
+  display: inline-block;
+  background: #ffca28;
+  color: #333;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  margin-left: 5px;
+}
+
+.route-line {
+  position: relative;
+}
+
+.station {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+}
+
+.station-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1976d2;
+  margin: 0 12px 0 5px;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.station-name {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.train-section,
+.walk-section {
+  margin-left: 10px;
+  padding-left: 25px;
+  border-left: 4px solid #1976d2;
+}
+
+.train-section {
+  cursor: pointer;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.train-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.train-name {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.train-badge {
+  color: white;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.train-badge.local {
+  background: #222;
+}
+
+.train-badge.koumei {
+  background: #27ae60;
+}
+
+.train-badge.rapid {
+  background: #e91e63;
+}
+
+.train-badge.skip {
+  background: #6840a5;
+}
+
+.train-badge.limited {
+  background: #e53935;
+}
+
+.platform {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #555;
+}
+
+.stop-hint {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #1976d2;
+}
+
+.stop-list {
+  display: none;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.stop-list.open {
+  display: block;
+}
+
+.walk-section {
+  border-left-color: #888;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  color: #555;
+}
+
+.route-summary {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.summary-badge {
+  background: #eef3f8;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: #555;
+}
+
+.legend {
+  background: white;
+  margin: 0 14px 14px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.legend-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 10px;
+  margin-bottom: 6px;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+
+.message {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  color: #666;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🚃 奥急 乗換案内</h1>
+  <p>奥急軌道・新都市線対応</p>
+</header>
+
+<div class="search-box">
+
+  <div class="select-row">
+
+    <div class="select-group">
+      <label>出発駅</label>
+      <select id="startStation"></select>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="select-group">
+      <label>到着駅</label>
+      <select id="goalStation"></select>
+    </div>
+
+  </div>
+
+  <button id="searchButton">検索</button>
+
+</div>
+
+
+<div class="legend">
+
+  <div class="legend-title">列車種別</div>
+
+  <div class="legend-item">
+    <span class="legend-color" style="background:#222"></span>
+    普通
+  </div>
+
+  <div class="legend-item">
+    <span class="legend-color" style="background:#27ae60"></span>
+    普通（神梅・新神梅経由）
+  </div>
+
+  <div class="legend-item">
+    <span class="legend-color" style="background:#e91e63"></span>
+    快速
+  </div>
+
+  <div class="legend-item">
+    <span class="legend-color" style="background:#6840a5"></span>
+    スキップシャトル
+  </div>
+
+  <div class="legend-item">
+    <span class="legend-color" style="background:#e53935"></span>
+    特急
+  </div>
+
+</div>
+
+
+<div id="result"></div>
+
+
+<script>
+
+/* =========================
+   駅データ
+========================= */
+
+const mainLineStations = [
+  "南奥",
+  "神梅",
+  "新神梅",
+  "住松風",
+  "波見上",
+  "波見下",
+  "毛河",
+  "読取",
+  "公園前",
+  "聖なる教会前",
+  "十野",
+  "北十野",
+  "真見川",
+  "本線安田",
+  "奥白峰",
+  "北奥"
+];
+
+const newCityStations = [
+  "公園前",
+  "公園前車庫",
+  "教会入口",
+  "南十野",
+  "団地入口",
+  "緑団地",
+  "グリータウン"
+];
+
+
+/* =========================
+   列車データ
+========================= */
+
+const trains = [
+
+  {
+    name: "普通",
+    type: "local",
+    line: "奥急本線",
+    color: "#222",
+    down: [
+      "南奥",
+      "住松風",
+      "波見上",
+      "波見下",
+      "毛河",
+      "読取",
+      "公園前"
+    ],
+    up: [
+      "公園前",
+      "読取",
+      "毛河",
+      "波見下",
+      "波見上",
+      "住松風",
+      "南奥"
+    ]
+  },
+
+  {
+    name: "普通（神梅・新神梅経由）",
+    type: "koumei",
+    line: "奥急本線",
+    color: "#27ae60",
+    down: [
+      "南奥",
+      "神梅",
+      "新神梅",
+      "住松風",
+      "波見上",
+      "波見下",
+      "毛河",
+      "読取",
+      "公園前",
+      "聖なる教会前",
+      "十野"
+    ],
+    up: [
+      "十野",
+      "聖なる教会前",
+      "公園前",
+      "読取",
+      "毛河",
+      "波見下",
+      "波見上",
+      "住松風",
+      "新神梅",
+      "神梅",
+      "南奥"
+    ]
+  },
+
+  {
+    name: "快速",
+    type: "rapid",
+    line: "奥急本線",
+    color: "#e91e63",
+    down: [
+      "南奥",
+      "波見上",
+      "読取",
+      "公園前",
+      "聖なる教会前",
+      "十野",
+      "北十野",
+      "真見川",
+      "本線安田",
+      "奥白峰",
+      "北奥"
+    ],
+    up: [
+      "北奥",
+      "奥白峰",
+      "本線安田",
+      "真見川",
+      "北十野",
+      "十野",
+      "聖なる教会前",
+      "公園前",
+      "読取",
+      "波見上",
+      "南奥"
+    ]
+  },
+
+  {
+    name: "スキップシャトル",
+    type: "skip",
+    line: "奥急本線",
+    color: "#6840a5",
+    down: [
+      "南奥",
+      "波見上",
+      "公園前",
+      "聖なる教会前",
+      "奥白峰",
+      "北奥"
+    ],
+    up: [
+      "北奥",
+      "聖なる教会前",
+      "公園前",
+      "波見上",
+      "南奥"
+    ]
+  },
+
+  {
+    name: "特急",
+    type: "limited",
+    line: "奥急本線",
+    color: "#e53935",
+    down: [
+      "南奥",
+      "北奥"
+    ],
+    up: [
+      "北奥",
+      "南奥"
+    ]
+  },
+
+  {
+    name: "新都市線",
+    type: "local",
+    line: "新都市線",
+    color: "#228b22",
+    down: [
+      "公園前",
+      "公園前車庫",
+      "教会入口",
+      "南十野",
+      "団地入口",
+      "緑団地",
+      "グリータウン"
+    ],
+    up: [
+      "グリータウン",
+      "緑団地",
+      "団地入口",
+      "南十野",
+      "教会入口",
+      "公園前車庫",
+      "公園前"
+    ]
+  }
+
+];
+
+
+/* =========================
+   徒歩乗換
+========================= */
+
+const walkingConnections = [
+  {
+    from: "聖なる教会前",
+    to: "教会入口",
+    minutes: 1
+  },
+  {
+    from: "教会入口",
+    to: "聖なる教会前",
+    minutes: 1
+  }
+];
+
+
+/* =========================
+   ホーム番号
+========================= */
+
+function getPlatform(station, train, direction) {
+
+  if (station === "読取" || station === "波見上") {
+
+    if (direction === "up") {
+
+      if (
+        train.type === "rapid" ||
+        train.type === "skip"
+      ) {
+        return "2番線";
+      }
+
+      return "1番線";
+    }
+
+    if (
+      train.type === "rapid" ||
+      train.type === "skip"
+    ) {
+      return "3番線";
+    }
+
+    return "4番線";
+  }
+
+
+  if (station === "公園前") {
+
+    if (train.line === "新都市線") {
+      return "6番線";
+    }
+
+    if (direction === "up") {
+
+      if (
+        train.type === "rapid" ||
+        train.type === "skip"
+      ) {
+        return "5番線";
+      }
+
+      return "1番線";
+    }
+
+    if (train.type === "local") {
+      return "3番線";
+    }
+
+    if (
+      train.type === "rapid" ||
+      train.type === "skip"
+    ) {
+      return "4番線";
+    }
+  }
+
+
+  if (train.line === "新都市線") {
+    return "6番線";
+  }
+
+
+  if (direction === "up") {
+    return "1番線";
+  }
+
+  return "2番線";
+}
+
+
+/* =========================
+   列車による移動
+========================= */
+
+function getTrainNextStations(station) {
+
+  const results = [];
+
+  trains.forEach(train => {
+
+    ["down", "up"].forEach(direction => {
+
+      const list = train[direction];
+
+      const index = list.indexOf(station);
+
+      if (index === -1) return;
+
+      for (let i = 0; i < list.length; i++) {
+
+        if (i === index) continue;
+
+        results.push({
+          type: "train",
+          train: train,
+          from: station,
+          to: list[i],
+          direction: direction
+        });
+
+      }
+
+    });
+
+  });
+
+  return results;
+}
+
+
+/* =========================
+   徒歩による移動
+========================= */
+
+function getWalkingNextStations(station) {
+
+  return walkingConnections
+    .filter(x => x.from === station)
+    .map(x => ({
+      type: "walk",
+      from: x.from,
+      to: x.to,
+      minutes: x.minutes
+    }));
+}
+
+
+/* =========================
+   経路探索
+========================= */
+
+function findRoutes(start, goal) {
+
+  const routes = [];
+
+  function dfs(current, route, visited) {
+
+    if (current === goal) {
+      routes.push([...route]);
+      return;
+    }
+
+    if (route.length >= 4) {
+      return;
+    }
+
+    const nexts = [
+      ...getTrainNextStations(current),
+      ...getWalkingNextStations(current)
+    ];
+
+    for (const next of nexts) {
+
+      if (visited.has(next.to)) {
+        continue;
+      }
+
+      const newVisited =
+        new Set(visited);
+
+      newVisited.add(next.to);
+
+      dfs(
+        next.to,
+        [...route, next],
+        newVisited
+      );
+    }
+  }
+
+  dfs(
+    start,
+    [],
+    new Set([start])
+  );
+
+  return routes;
+}
+
+
+/* =========================
+   経路整理
+========================= */
+
+function simplifyRoute(route) {
+
+  const result = [];
+
+  for (const section of route) {
+
+    const last =
+      result[result.length - 1];
+
+    if (
+      last &&
+      last.type === "train" &&
+      section.type === "train" &&
+      last.train.name === section.train.name &&
+      last.direction === section.direction
+    ) {
+
+      last.to = section.to;
+
+    } else {
+
+      result.push({...section});
+
+    }
+  }
+
+  return result;
+}
+
+
+/* =========================
+   重複削除
+========================= */
+
+function removeDuplicateRoutes(routes) {
+
+  const seen = new Set();
+  const result = [];
+
+  routes.forEach(route => {
+
+    const key = route.map(section => {
+
+      if (section.type === "walk") {
+        return `W:${section.from}>${section.to}`;
+      }
+
+      return `T:${section.train.name}:${section.from}:${section.to}`;
+
+    }).join("|");
+
+    if (!seen.has(key)) {
+
+      seen.add(key);
+      result.push(route);
+
+    }
+
+  });
+
+  return result;
+}
+
+
+/* =========================
+   乗り換え回数
+========================= */
+
+function countTransfers(route) {
+
+  let trainCount = 0;
+
+  route.forEach(section => {
+
+    if (section.type === "train") {
+      trainCount++;
+    }
+
+  });
+
+  return Math.max(
+    0,
+    trainCount - 1
+  );
+}
+
+
+/* =========================
+   停車駅取得
+========================= */
+
+function getIntermediateStops(section) {
+
+  const list =
+    section.train[section.direction];
+
+  const fromIndex =
+    list.indexOf(section.from);
+
+  const toIndex =
+    list.indexOf(section.to);
+
+  if (
+    fromIndex === -1 ||
+    toIndex === -1
+  ) {
+    return [];
+  }
+
+  if (fromIndex < toIndex) {
+
+    return list.slice(
+      fromIndex,
+      toIndex + 1
+    );
+
+  }
+
+  return list.slice(
+    toIndex,
+    fromIndex + 1
+  ).reverse();
+}
+
+
+function getStationCount(section) {
+
+  return getIntermediateStops(section).length;
+}
+
+
+/* =========================
+   経路の順位
+   ①乗り換え
+   ②駅数
+========================= */
+
+function routeScore(route) {
+
+  const transfers =
+    countTransfers(route);
+
+  let stops = 0;
+
+  route.forEach(section => {
+
+    if (section.type === "train") {
+
+      stops += Math.max(
+        0,
+        getStationCount(section) - 1
+      );
+
+    }
+
+  });
+
+  return transfers * 1000 + stops;
+}
+
+
+/* =========================
+   列車表示
+========================= */
+
+function createTrainSection(section) {
+
+  const train = section.train;
+
+  const stops =
+    getIntermediateStops(section);
+
+  const stationCount =
+    stops.length;
+
+  const div =
+    document.createElement("div");
+
+  div.className =
+    "train-section";
+
+  div.style.borderLeftColor =
+    train.color;
+
+
+  const main =
+    document.createElement("div");
+
+  main.className =
+    "train-main";
+
+
+  const badge =
+    document.createElement("span");
+
+  badge.className =
+    `train-badge ${train.type}`;
+
+  badge.textContent =
+    train.name;
+
+
+  const name =
+    document.createElement("span");
+
+  name.className =
+    "train-name";
+
+  name.textContent =
+    train.line === "新都市線"
+      ? "新都市線"
+      : `${section.to}方面`;
+
+
+  main.appendChild(badge);
+  main.appendChild(name);
+
+  div.appendChild(main);
+
+
+  const platform =
+    document.createElement("div");
+
+  platform.className =
+    "platform";
+
+  platform.textContent =
+    `🚉 ${getPlatform(
+      section.from,
+      train,
+      section.direction
+    )}`;
+
+  div.appendChild(platform);
+
+
+  const count =
+    document.createElement("div");
+
+  count.className =
+    "platform";
+
+  count.textContent =
+    `🚉 全${stationCount}駅`;
+
+  div.appendChild(count);
+
+
+  const hint =
+    document.createElement("div");
+
+  hint.className =
+    "stop-hint";
+
+  hint.textContent =
+    "▼ タップして停車駅を見る";
+
+  div.appendChild(hint);
+
+
+  const stopList =
+    document.createElement("div");
+
+  stopList.className =
+    "stop-list";
+
+  stopList.innerHTML =
+    stops.map((station, index) => {
+
+      if (index === 0) {
+        return `🚩 ${station}`;
+      }
+
+      if (index === stops.length - 1) {
+        return `🏁 ${station}`;
+      }
+
+      return `・${station}`;
+
+    }).join("<br>");
+
+  div.appendChild(stopList);
+
+
+  div.addEventListener(
+    "click",
+    () => {
+
+      stopList.classList.toggle("open");
+
+      if (
+        stopList.classList.contains("open")
+      ) {
+
+        hint.textContent =
+          "▲ 停車駅を閉じる";
+
+      } else {
+
+        hint.textContent =
+          "▼ タップして停車駅を見る";
+
+      }
+
+    }
+  );
+
+
+  return div;
+}
+
+
+/* =========================
+   徒歩表示
+========================= */
+
+function createWalkSection(section) {
+
+  const div =
+    document.createElement("div");
+
+  div.className =
+    "walk-section";
+
+  div.textContent =
+    `🚶 徒歩：${section.from} → ${section.to}`;
+
+  return div;
+}
+
+
+/* =========================
+   駅表示
+========================= */
+
+function createStationHTML(station) {
+
+  const div =
+    document.createElement("div");
+
+  div.className =
+    "station";
+
+  div.innerHTML = `
+    <span class="station-dot"></span>
+    <span class="station-name">${station}</span>
+  `;
+
+  return div;
+}
+
+
+/* =========================
+   経路カード
+========================= */
+
+function createRouteHTML(
+  route,
+  number,
+  start
+) {
+
+  const card =
+    document.createElement("div");
+
+  card.className =
+    "route-card";
+
+
+  const title =
+    document.createElement("div");
+
+  title.className =
+    "route-title";
+
+  title.innerHTML =
+    `ルート ${number}` +
+    (
+      number === 1
+        ? `<span class="recommend">⭐ おすすめ</span>`
+        : ""
+    );
+
+  card.appendChild(title);
+
+
+  const summary =
+    document.createElement("div");
+
+  summary.className =
+    "route-summary";
+
+
+  const transfers =
+    countTransfers(route);
+
+
+  const transferBadge =
+    document.createElement("span");
+
+  transferBadge.className =
+    "summary-badge";
+
+  transferBadge.textContent =
+    `乗り換え ${transfers}回`;
+
+  summary.appendChild(
+    transferBadge
+  );
+
+
+  let totalStops = 0;
+
+  route.forEach(section => {
+
+    if (section.type === "train") {
+
+      totalStops += Math.max(
+        0,
+        getStationCount(section) - 1
+      );
+
+    }
+
+  });
+
+
+  const stationBadge =
+    document.createElement("span");
+
+  stationBadge.className =
+    "summary-badge";
+
+  stationBadge.textContent =
+    `停車駅 ${totalStops + 1}駅`;
+
+  summary.appendChild(
+    stationBadge
+  );
+
+
+  card.appendChild(summary);
+
+
+  const line =
+    document.createElement("div");
+
+  line.className =
+    "route-line";
+
+
+  let currentStation = start;
+
+
+  line.appendChild(
+    createStationHTML(
+      currentStation
+    )
+  );
+
+
+  route.forEach(section => {
+
+    if (section.type === "train") {
+
+      line.appendChild(
+        createTrainSection(
+          section
+        )
+      );
+
+    } else {
+
+      line.appendChild(
+        createWalkSection(
+          section
+        )
+      );
+
+    }
+
+
+    currentStation =
+      section.to;
+
+
+    line.appendChild(
+      createStationHTML(
+        currentStation
+      )
+    );
+
+  });
+
+
+  card.appendChild(line);
+
+  return card;
+}
+
+
+/* =========================
+   駅選択
+========================= */
+
+function initializeStations() {
+
+  const start =
+    document.getElementById(
+      "startStation"
+    );
+
+  const goal =
+    document.getElementById(
+      "goalStation"
+    );
+
+
+  const mainGroup1 =
+    document.createElement(
+      "optgroup"
+    );
+
+  mainGroup1.label =
+    "奥急本線";
+
+
+  mainLineStations.forEach(
+    station => {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        station;
+
+      option.textContent =
+        station;
+
+      mainGroup1.appendChild(
+        option
+      );
+
+    }
+  );
+
+
+  const newGroup1 =
+    document.createElement(
+      "optgroup"
+    );
+
+  newGroup1.label =
+    "新都市線";
+
+
+  newCityStations
+    .filter(
+      station =>
+        station !== "公園前"
+    )
+    .forEach(
+      station => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+        option.value =
+          station;
+
+        option.textContent =
+          station;
+
+        newGroup1.appendChild(
+          option
+        );
+
+      }
+    );
+
+
+  const mainGroup2 =
+    mainGroup1.cloneNode(true);
+
+  const newGroup2 =
+    newGroup1.cloneNode(true);
+
+
+  start.appendChild(
+    mainGroup1
+  );
+
+  start.appendChild(
+    newGroup1
+  );
+
+
+  goal.appendChild(
+    mainGroup2
+  );
+
+  goal.appendChild(
+    newGroup2
+  );
+
+
+  start.value =
+    "南奥";
+
+  goal.value =
+    "北奥";
+}
+
+
+/* =========================
+   検索
+========================= */
+
+function searchRoute() {
+
+  const start =
+    document.getElementById(
+      "startStation"
+    ).value;
+
+  const goal =
+    document.getElementById(
+      "goalStation"
+    ).value;
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.innerHTML = "";
+
+
+  if (start === goal) {
+
+    result.innerHTML = `
+      <div class="message">
+        出発駅と到着駅が同じだよ。
+      </div>
+    `;
+
+    return;
+  }
+
+
+  let routes =
+    findRoutes(
+      start,
+      goal
+    );
+
+
+  routes =
+    routes.map(
+      route =>
+        simplifyRoute(route)
+    );
+
+
+  routes =
+    removeDuplicateRoutes(
+      routes
+    );
+
+
+  /* 直通列車があるなら乗り換えない */
+
+  const directRoutes =
+    routes.filter(
+      route =>
+        route.length === 1 &&
+        route[0].type === "train"
+    );
+
+
+  if (
+    directRoutes.length > 0
+  ) {
+    routes =
+      directRoutes;
+  }
+
+
+  /* 乗り換え回数 → 駅数 */
+
+  routes.sort(
+    (a, b) =>
+      routeScore(a) -
+      routeScore(b)
+  );
+
+
+  routes =
+    routes.slice(0, 3);
+
+
+  if (routes.length === 0) {
+
+    result.innerHTML = `
+      <div class="message">
+        この区間の経路が見つからないよ。
+      </div>
+    `;
+
+    return;
+  }
+
+
+  routes.forEach(
+    (route, index) => {
+
+      result.appendChild(
+        createRouteHTML(
+          route,
+          index + 1,
+          start
+        )
+      );
+
+    }
+  );
+}
+
+
+/* =========================
+   起動
+========================= */
+
+initializeStations();
+
+
+document
+  .getElementById("searchButton")
+  .addEventListener(
+    "click",
+    searchRoute
+  );
+
+</script>
+
+</body>
+</html>
